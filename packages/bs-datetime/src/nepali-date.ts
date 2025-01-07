@@ -282,6 +282,14 @@ class NepaliDate implements INepaliDate {
 
         return date;
       },
+      startOfMonth: () => {
+        const [year, month, day] = this.#nepaliDate;
+
+        const date = new NepaliDate(this);
+        date.setDate(0);
+
+        return date;
+      },
     };
   }
 
