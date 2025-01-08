@@ -210,7 +210,7 @@ class NepaliDate implements INepaliDate {
   }
 
   setDate(date: number): number {
-    this.#nepaliDate[2] = date;
+    this.#nepaliDate[2] = date - 1;
     this.#syncADwithBS();
 
     return this.#englishDate.getTime();

@@ -4,6 +4,8 @@ import React from "react";
 type CalendarContext = {
   currentViewerDate: NepaliDate;
   setCurrentViewerDate: React.Dispatch<React.SetStateAction<NepaliDate>>;
+  selectedDate: NepaliDate;
+  setSelectedDate: React.Dispatch<React.SetStateAction<NepaliDate>>;
 };
 
 const CalendarContext = React.createContext<CalendarContext>(null!);
@@ -20,12 +22,17 @@ const CalendarProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentViewerDate, setCurrentViewerDate] = React.useState(
     () => new NepaliDate()
   );
+  const [selectedDate, setSelectedDate] = React.useState(
+    () => new NepaliDate()
+  );
 
   return (
     <CalendarContext.Provider
       value={{
         currentViewerDate,
         setCurrentViewerDate,
+        selectedDate,
+        setSelectedDate,
       }}
     >
       {children}

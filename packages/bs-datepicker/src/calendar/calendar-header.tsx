@@ -45,11 +45,10 @@ export function CalendarHeader({
   const { formatLabel } = useFormatNumber(locale);
 
   const currentValue = useMemo(() => {
-    const date = currentViewerDate.getDate();
     const month = currentViewerDate.getMonth();
     const year = currentViewerDate.getFullYear();
 
-    return `${formatLabel(date)} ${CALENDAR_LABELS.months[locale].full[month]}, ${formatLabel(year)}`;
+    return `${CALENDAR_LABELS.months[locale].full[month]} ${formatLabel(year)}`;
   }, [currentViewerDate, locale]);
 
   /**

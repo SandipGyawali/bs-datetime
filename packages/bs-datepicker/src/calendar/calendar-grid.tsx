@@ -16,7 +16,12 @@ export default function CalendarGrid({
   const gridId = useId();
   const weekend = Math.max(...weekends);
 
-  const { currentViewerDate, setCurrentViewerDate } = useCalendar();
+  const {
+    currentViewerDate,
+    setCurrentViewerDate,
+    selectedDate,
+    setSelectedDate,
+  } = useCalendar();
 
   const containerRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<Array<HTMLButtonElement>>([]);
@@ -241,6 +246,11 @@ export default function CalendarGrid({
     if (!day.currentMonth) return;
 
     setCurrentTabbableButton(index);
+
+    const date = new NepaliDate(currentViewerDate);
+    date.setDate(day.value);
+
+    setSelectedDate(date);
   };
 
   React.useLayoutEffect(() => {
@@ -249,6 +259,8 @@ export default function CalendarGrid({
       focusChangeRef.current = false;
     }
   }, [currentTabbableButton]);
+
+  console.log(selectedDate.toString());
 
   return (
     <div
@@ -270,10 +282,16 @@ export default function CalendarGrid({
           }}
           className={cn("p-1 rounded", {
             "text-neutral-400": !item.currentMonth,
-            "bg-green-100":
+            "bg-neutral-200":
+              item.currentMonth &&
               item.value === today.getDate() &&
               currentViewerDate.getFullYear() === today.getFullYear() &&
               currentViewerDate.getMonth() === today.getMonth(),
+            "bg-neutral-800 text-white":
+              item.currentMonth &&
+              item.value === selectedDate.getDate() &&
+              selectedDate.getFullYear() === currentViewerDate.getFullYear() &&
+              selectedDate.getMonth() === currentViewerDate.getMonth(),
           })}
           disabled={!item.label}
           tabIndex={currentTabbableButton === index ? 0 : -1}
