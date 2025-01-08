@@ -165,7 +165,7 @@ class NepaliDate implements INepaliDate {
   }
 
   getDate(): number {
-    return this.#nepaliDate[2];
+    return this.#nepaliDate[2] + 1;
   }
 
   getDay(): number {

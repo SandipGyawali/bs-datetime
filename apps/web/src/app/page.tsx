@@ -2,13 +2,13 @@
 
 import { Calendar } from "bs-datepicker";
 import "bs-datepicker/styles.css";
-import { CALENDAR_LABELS } from "bs-datetime";
+import { CALENDAR_LABELS, NepaliDate } from "bs-datetime";
 import { useState } from "react";
 
 export default function Page() {
   const [locale, setLocale] = useState("en" as "en" | "np");
   const [showYearNavigation, setShowYearNavigation] = useState(false);
-  const [weekend, setWeekend] = useState(0);
+  const [weekend, setWeekend] = useState(6);
 
   return (
     <main className="grid min-h-dvh place-items-center">

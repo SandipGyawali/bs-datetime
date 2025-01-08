@@ -3,7 +3,7 @@ import { useCalendar } from "./calendar-context";
 import { CALENDAR_LABELS, NepaliDate } from "bs-datetime";
 import { cn } from "../lib/cn";
 import type { CalendarProps } from "./calendar";
-import { useFormatNumber } from "./calendar-utils";
+import { getStartDay, useFormatNumber } from "./calendar-utils";
 
 const today = new NepaliDate();
 export default function CalendarGrid({
@@ -22,7 +22,7 @@ export default function CalendarGrid({
   const btnRef = useRef<Array<HTMLButtonElement>>([]);
   const focusChangeRef = useRef(false);
 
-  const [currentTabbableButton, setCurrentTabbableButton] = useState(0);
+  const [currentTabbableButton, setCurrentTabbableButton] = useState(20);
 
   const dayLabels = React.useMemo(() => {
     const weekend = Math.max(...weekends);
@@ -34,12 +34,13 @@ export default function CalendarGrid({
         `Maximum weekend end can't be greater than 6. ${weekend} provided.`
       );
 
+    // rotate labels until weekend is in the end of
     while (true) {
       if (weekendLabel === weekDays[weekDays.length - 1]) {
         break;
       }
 
-      weekDays.unshift(weekDays.pop()!); // rotate labels until its done
+      weekDays.unshift(weekDays.pop()!);
     }
 
     return weekDays;
@@ -64,7 +65,7 @@ export default function CalendarGrid({
         const prevMonth = new NepaliDate(currentViewerDate);
         prevMonth.setMonth(prevMonth.getMonth() - 1);
 
-        const prevMonthEnd = prevMonth.get.endOfMonth().getDate() + 1;
+        const prevMonthEnd = prevMonth.get.endOfMonth().getDate();
 
         const prevMonthDayStart = prevMonthEnd - startDay;
 
@@ -83,7 +84,7 @@ export default function CalendarGrid({
           });
       }
 
-      Array(endDate)
+      Array(endDate - 1)
         .fill(0)
         .forEach((_, index) => {
           daysArray.push({
@@ -111,6 +112,11 @@ export default function CalendarGrid({
       return [daysArray, endDate, startDay] as const;
     }, [currentViewerDate, locale, showAdjacentMonthDates, ...weekends]);
 
+  /**
+   * Changes the month of the currentViewerDate by num relative to current month
+   * @param num number to move month by
+   * @returns NepaliDate instance with the new month change applied
+   */
   const changeMonth = (num: number) => {
     currentViewerDate.setMonth(currentViewerDate.getMonth() + num);
 
@@ -120,62 +126,111 @@ export default function CalendarGrid({
     return newMonth;
   };
 
+  /**
+   * Handles focus of the grid items when navigated via the keyboard
+   */
   const handleFocus = (e: React.KeyboardEvent<HTMLDivElement>) => {
     let btnIndex = -1;
     switch (e.code) {
       case "ArrowUp":
+        /**
+         * Check if moving up (7 days back) would go to the previous month
+         */
         if (currentTabbableButton - 7 < currentMonthStartIndex) {
           const newMonth = changeMonth(-1);
-          const newMonthEnd = newMonth.get.endOfMonth().getDate();
+
+          /**
+           * Get the index of the last day of the previous month
+           */
+          const newMonthEnd = newMonth.get.endOfMonth().getDate() - 1;
+
+          /**
+           * Calculate the weekday index of the first day of the previous month
+           */
           const start = getStartDay(newMonth, weekend);
 
+          /**
+           * Calculate the last button index of the whose day is the same as the
+           * current focused button
+           */
           btnIndex =
-            Math.floor((start + newMonthEnd) / 7) * 7 -
-            (currentTabbableButton % 7) +
-            1;
-          if (btnIndex + 7 < start + newMonthEnd) btnIndex += 7;
+            Math.floor((start + newMonthEnd) / 7) * 7 +
+            (currentTabbableButton % 7);
+
+          /**
+           * if btnIndex is higher than the month itself, then subtract 7
+           */
+          if (btnIndex >= start + newMonthEnd) btnIndex -= 7;
         } else {
+          /**
+           * Move up (7 days back) within the current month
+           */
           btnIndex = currentTabbableButton - 7;
         }
         break;
       case "ArrowDown":
+        // Check if moving down (7 days forward) would go to the next month
         if (
           currentTabbableButton + 7 >=
-          currentMonthStartIndex + currentMonthDaysCount
+          currentMonthStartIndex + currentMonthDaysCount - 1
         ) {
           const newMonth = changeMonth(1);
           const start = getStartDay(newMonth, weekend);
+
+          // Calculate the button index in the next month which is the same day
           btnIndex = currentTabbableButton % 7;
+
+          // Offset the day if the month doesn't start before the day
           if (btnIndex < start) btnIndex += 7;
         } else {
+          // Move down (7 days forward) within the current month
           btnIndex = currentTabbableButton + 7;
         }
         break;
 
       case "ArrowLeft":
+        /**
+         * we're on the first day, so go to the previous month and set the
+         * focus to the last day of the last month.
+         */
         if (currentTabbableButton === currentMonthStartIndex) {
           const newMonth = changeMonth(-1);
           const start = getStartDay(newMonth, weekend);
-          btnIndex = start + newMonth.get.endOfMonth().getDate() - 1;
+          btnIndex = start + newMonth.get.endOfMonth().getDate() - 2;
         } else {
+          /**
+           * if we're not at the first day, we can safely move to the previous day
+           */
           btnIndex = currentTabbableButton - 1;
         }
         break;
       case "ArrowRight":
+        /**
+         * we're on the last day, so go to the next month and set the focus to the
+         * first day of the next month.
+         */
         if (
           currentTabbableButton ===
-          currentMonthStartIndex + currentMonthDaysCount - 1
+          currentMonthStartIndex + currentMonthDaysCount - 2
         ) {
           const newMonth = changeMonth(1);
           const start = getStartDay(newMonth, weekend);
           btnIndex = start;
         } else {
+          /**
+           * if we're not at the last day, we can safely move to the next day
+           */
           btnIndex = currentTabbableButton + 1;
         }
         break;
+      case "Return":
+        /**
+         * select the current day
+         */
+        selectDate(days[currentTabbableButton], currentTabbableButton);
+        break;
     }
 
-    console.log(btnIndex);
     if (btnIndex > -1) {
       focusChangeRef.current = true;
       setCurrentTabbableButton(btnIndex);
@@ -216,7 +271,7 @@ export default function CalendarGrid({
           className={cn("p-1 rounded", {
             "text-neutral-400": !item.currentMonth,
             "bg-green-100":
-              item.value === today.getDate() + 1 &&
+              item.value === today.getDate() &&
               currentViewerDate.getFullYear() === today.getFullYear() &&
               currentViewerDate.getMonth() === today.getMonth(),
           })}
@@ -229,14 +284,3 @@ export default function CalendarGrid({
     </div>
   );
 }
-
-const getStartDay = (date: NepaliDate, weekend: number) => {
-  const todayWeekdayIndex = date.getDay();
-  const todayDate = date.getDate() + 1;
-
-  const _startDay = todayWeekdayIndex - (todayDate % 7) + 1;
-  const startDay =
-    ((_startDay >= 0 ? _startDay : 7 + _startDay) - weekend + 6) % 7;
-
-  return startDay;
-};

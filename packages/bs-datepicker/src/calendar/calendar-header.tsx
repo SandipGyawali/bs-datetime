@@ -52,16 +52,18 @@ export function CalendarHeader({
     return `${formatLabel(date)} ${CALENDAR_LABELS.months[locale].full[month]}, ${formatLabel(year)}`;
   }, [currentViewerDate, locale]);
 
-  const prevMonth = (num: number) => {
-    currentViewerDate.setMonth(currentViewerDate.getMonth() - num);
-
-    setCurrentViewerDate(new NepaliDate(currentViewerDate));
-  };
-
-  const nextMonth = (num: number) => {
+  /**
+   * Changes the month of the currentViewerDate by num relative to current month
+   * @param num number to move month by
+   * @returns NepaliDate instance with the new month change applied
+   */
+  const changeMonth = (num: number) => {
     currentViewerDate.setMonth(currentViewerDate.getMonth() + num);
 
-    setCurrentViewerDate(new NepaliDate(currentViewerDate));
+    const newMonth = new NepaliDate(currentViewerDate);
+    setCurrentViewerDate(newMonth);
+
+    return newMonth;
   };
 
   const isNextYearDisabled =
@@ -78,14 +80,14 @@ export function CalendarHeader({
     <div className="flex items-center gap-2">
       {showYearNavigation && (
         <NavigationButton
-          onClick={() => prevMonth(12)}
+          onClick={() => changeMonth(-12)}
           disabled={isPrevYearDisabled}
         >
           <ChevronDoubleLeft />
         </NavigationButton>
       )}
       <NavigationButton
-        onClick={() => prevMonth(1)}
+        onClick={() => changeMonth(-1)}
         disabled={isPrevMonthDisabled}
       >
         <ChevronLeft />
@@ -98,14 +100,14 @@ export function CalendarHeader({
         {currentValue}
       </NavigationButton>
       <NavigationButton
-        onClick={() => nextMonth(1)}
+        onClick={() => changeMonth(1)}
         disabled={isNextMonthDisabled}
       >
         <ChevronRight />
       </NavigationButton>
       {showYearNavigation && (
         <NavigationButton
-          onClick={() => nextMonth(12)}
+          onClick={() => changeMonth(12)}
           disabled={isNextYearDisabled}
         >
           <ChevronDoubleRight />
