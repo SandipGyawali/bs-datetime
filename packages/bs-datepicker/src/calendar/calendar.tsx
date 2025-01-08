@@ -12,7 +12,7 @@ export type CalendarProps = {
   weekends?: number[];
   showAdjacentMonthDates?: boolean;
   value?: NepaliDate;
-  onValueChange?: (date: NepaliDate) => void;
+  onValueChange?: (date: NepaliDate | undefined) => void;
 };
 
 export function Calendar({

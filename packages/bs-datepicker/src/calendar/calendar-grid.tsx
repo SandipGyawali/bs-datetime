@@ -27,10 +27,12 @@ export default function CalendarGrid({
   const btnRef = useRef<Array<HTMLButtonElement>>([]);
   const focusChangeRef = useRef(false);
 
-  const [currentTabbableButton, setCurrentTabbableButton] = useState(20);
+  const [currentTabbableButton, setCurrentTabbableButton] = useState(() => {
+    const startDay = getStartDay(selectedDate || currentViewerDate, weekend);
+    return startDay + (selectedDate || currentViewerDate).getDate() - 1;
+  });
 
   const dayLabels = React.useMemo(() => {
-    const weekend = Math.max(...weekends);
     const weekDays = CALENDAR_LABELS.weekdays[locale].short.slice();
     const weekendLabel = weekDays[weekend];
 
@@ -260,8 +262,6 @@ export default function CalendarGrid({
     }
   }, [currentTabbableButton]);
 
-  console.log(selectedDate.toString());
-
   return (
     <div
       className="grid grid-cols-7 text-xs gap-1 w-full mt-3 text-center"
@@ -289,9 +289,9 @@ export default function CalendarGrid({
               currentViewerDate.getMonth() === today.getMonth(),
             "bg-neutral-800 text-white":
               item.currentMonth &&
-              item.value === selectedDate.getDate() &&
-              selectedDate.getFullYear() === currentViewerDate.getFullYear() &&
-              selectedDate.getMonth() === currentViewerDate.getMonth(),
+              item.value === selectedDate?.getDate() &&
+              selectedDate?.getFullYear() === currentViewerDate.getFullYear() &&
+              selectedDate?.getMonth() === currentViewerDate.getMonth(),
           })}
           disabled={!item.label}
           tabIndex={currentTabbableButton === index ? 0 : -1}

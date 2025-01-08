@@ -278,7 +278,7 @@ class NepaliDate implements INepaliDate {
         const [year, month, day] = this.#nepaliDate;
 
         const date = new NepaliDate(this);
-        date.setDate(MAPPINGS.get(year)!.months[month]);
+        date.setDate(MAPPINGS.get(year)!.months[month] + 1);
 
         return date;
       },

@@ -4,14 +4,13 @@ import React, { useEffect, useRef } from "react";
 type CalendarContext = {
   currentViewerDate: NepaliDate;
   setCurrentViewerDate: React.Dispatch<React.SetStateAction<NepaliDate>>;
-  selectedDate: NepaliDate;
-  setSelectedDate: React.Dispatch<React.SetStateAction<NepaliDate>>;
+  selectedDate?: NepaliDate;
+  setSelectedDate: React.Dispatch<React.SetStateAction<NepaliDate | undefined>>;
 };
 
 const CalendarContext = React.createContext<CalendarContext>(null!);
 
-const isFn = (fn: any): fn is Function =>
-  ({}).toString.call(fn) === "[object Function]";
+const isFunction = (fn: any): fn is Function => fn instanceof Function;
 
 const useCalendar = () => {
   const value = React.useContext(CalendarContext);
@@ -28,7 +27,7 @@ const CalendarProvider = ({
 }: {
   children: React.ReactNode;
   value?: NepaliDate;
-  onValueChange?: (date: NepaliDate) => void;
+  onValueChange?: (date: NepaliDate | undefined) => void;
 }) => {
   const setValueRef = useRef(onValueChange);
   setValueRef.current = onValueChange;
@@ -36,9 +35,7 @@ const CalendarProvider = ({
   const [currentViewerDate, setCurrentViewerDate] = React.useState(
     () => value || new NepaliDate()
   );
-  const [selectedDate, _setSelectedDate] = React.useState(
-    () => value || new NepaliDate()
-  );
+  const [selectedDate, _setSelectedDate] = React.useState(value);
 
   React.useEffect(() => {
     if (!value) return;
@@ -46,8 +43,13 @@ const CalendarProvider = ({
   }, [value?.toString()]);
 
   const setSelectedDate = React.useCallback(
-    (fnOrValue: NepaliDate | ((prev: NepaliDate) => NepaliDate)) => {
-      if (!isFn(fnOrValue)) {
+    (
+      fnOrValue:
+        | NepaliDate
+        | undefined
+        | ((prev: NepaliDate | undefined) => NepaliDate | undefined)
+    ) => {
+      if (!isFunction(fnOrValue)) {
         _setSelectedDate(fnOrValue);
         setValueRef.current?.(fnOrValue);
         return;
