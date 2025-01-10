@@ -24,16 +24,18 @@ const CalendarProvider = ({
   children,
   value,
   onValueChange,
+  defaultViewerDate,
 }: {
   children: React.ReactNode;
   value?: NepaliDate;
   onValueChange?: (date: NepaliDate | undefined) => void;
+  defaultViewerDate?: NepaliDate;
 }) => {
   const setValueRef = useRef(onValueChange);
   setValueRef.current = onValueChange;
 
   const [currentViewerDate, setCurrentViewerDate] = React.useState(
-    () => value || new NepaliDate()
+    () => value || defaultViewerDate || new NepaliDate()
   );
   const [selectedDate, _setSelectedDate] = React.useState(value);
 

@@ -4,6 +4,7 @@ import { CALENDAR_LABELS, NepaliDate } from "bs-datetime";
 import { cn } from "../lib/cn";
 import type { CalendarProps } from "./calendar";
 import { getStartDay, useFormatNumber } from "./calendar-utils";
+import { chunk } from "../lib/chunk";
 
 const today = new NepaliDate();
 export default function CalendarGrid({
@@ -23,7 +24,7 @@ export default function CalendarGrid({
     setSelectedDate,
   } = useCalendar();
 
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLTableElement>(null);
   const btnRef = useRef<Array<HTMLButtonElement>>([]);
   const focusChangeRef = useRef(false);
 
@@ -55,7 +56,7 @@ export default function CalendarGrid({
 
   const { formatLabel } = useFormatNumber(locale);
 
-  const [days, currentMonthDaysCount, currentMonthStartIndex] =
+  const [days, chunkedDays, currentMonthDaysCount, currentMonthStartIndex] =
     React.useMemo(() => {
       const daysArray: Array<{
         label: string;
@@ -116,7 +117,7 @@ export default function CalendarGrid({
           });
         });
 
-      return [daysArray, endDate, startDay] as const;
+      return [daysArray, chunk(daysArray, 7), endDate, startDay] as const;
     }, [currentViewerDate, locale, showAdjacentMonthDates, ...weekends]);
 
   /**
@@ -230,12 +231,80 @@ export default function CalendarGrid({
           btnIndex = currentTabbableButton + 1;
         }
         break;
+      case "Home":
+        /**
+         * Calculate the first of the current week
+         */
+        btnIndex = Math.floor(currentTabbableButton / 7) * 7;
+
+        /**
+         * If the calculated first lies in the previous month, navigate to previous
+         * month and focus on its last week's first day
+         */
+        if (btnIndex < getStartDay(currentViewerDate, weekend)) {
+          const newMonth = changeMonth(-1);
+          const start = getStartDay(newMonth, weekend);
+
+          btnIndex =
+            Math.floor((start + newMonth.get.endOfMonth().getDate() - 1) / 7) *
+            7;
+        }
+        break;
+      case "End":
+        /**
+         * Calculate the last of the current week
+         */
+        btnIndex = Math.floor(currentTabbableButton / 7) * 7 + 6;
+
+        /**
+         * If the calculated last lies in the next month, navigate to the next
+         * month and focus on its first week's last day
+         */
+        if (
+          btnIndex >=
+          getStartDay(currentViewerDate, weekend) +
+            currentViewerDate.get.endOfMonth().getDate() -
+            1
+        ) {
+          changeMonth(1);
+          btnIndex = 6;
+        }
+        break;
+      case "PageUp": {
+        const start = getStartDay(currentViewerDate, weekend);
+        const newMonth = changeMonth(e.shiftKey ? -12 : -1);
+        const startNew = getStartDay(newMonth, weekend);
+        const newEndDate = newMonth.get.endOfMonth().getDate();
+
+        btnIndex = startNew + currentTabbableButton - start;
+
+        if (btnIndex > newEndDate - 2 + startNew)
+          btnIndex = startNew + newEndDate - 2;
+
+        break;
+      }
+      case "PageDown": {
+        const start = getStartDay(currentViewerDate, weekend);
+        const newMonth = changeMonth(e.shiftKey ? 12 : 1);
+        const startNew = getStartDay(newMonth, weekend);
+        const newEndDate = newMonth.get.endOfMonth().getDate();
+
+        btnIndex = startNew + currentTabbableButton - start;
+
+        if (btnIndex > newEndDate - 2 + startNew)
+          btnIndex = startNew + newEndDate - 2;
+
+        break;
+      }
       case "Return":
+      case "Space":
         /**
          * select the current day
          */
         selectDate(days[currentTabbableButton], currentTabbableButton);
         break;
+      default:
+        return;
     }
 
     if (btnIndex > -1) {
@@ -248,6 +317,7 @@ export default function CalendarGrid({
     if (!day.currentMonth) return;
 
     setCurrentTabbableButton(index);
+    focusChangeRef.current = true;
 
     const date = new NepaliDate(currentViewerDate);
     date.setDate(day.value);
@@ -263,42 +333,66 @@ export default function CalendarGrid({
   }, [currentTabbableButton]);
 
   return (
-    <div
-      className="grid grid-cols-7 text-xs gap-1 w-full mt-3 text-center"
+    <table
+      className="text-xs gap-1 w-full mt-3 text-center"
       ref={containerRef}
       onKeyDown={handleFocus}
+      role="grid"
     >
-      {dayLabels.map((item) => (
-        <span className="font-semibold" key={`${gridId}-${item}`}>
-          {item}
-        </span>
-      ))}
-      {days.map((item, index) => (
-        <button
-          onClick={() => selectDate(item, index)}
-          key={`${gridId}-${item.value}-${item.currentMonth}-${item.prevMonth}`}
-          ref={(e) => {
-            if (e) btnRef.current[index] = e;
-          }}
-          className={cn("p-1 rounded", {
-            "text-neutral-400": !item.currentMonth,
-            "bg-neutral-200":
-              item.currentMonth &&
-              item.value === today.getDate() &&
-              currentViewerDate.getFullYear() === today.getFullYear() &&
-              currentViewerDate.getMonth() === today.getMonth(),
-            "bg-neutral-800 text-white":
-              item.currentMonth &&
-              item.value === selectedDate?.getDate() &&
-              selectedDate?.getFullYear() === currentViewerDate.getFullYear() &&
-              selectedDate?.getMonth() === currentViewerDate.getMonth(),
-          })}
-          disabled={!item.label}
-          tabIndex={currentTabbableButton === index ? 0 : -1}
-        >
-          {item.label}
-        </button>
-      ))}
-    </div>
+      <thead>
+        <tr>
+          {dayLabels.map((item) => (
+            <th className="font-semibold" key={`${gridId}-${item}`}>
+              {item}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {chunkedDays.map((row, rIndex) => (
+          <tr key={`${gridId}-row-${rIndex}`}>
+            {row.map((item, index) => {
+              const dayIndex = rIndex * 7 + index;
+              return (
+                <td
+                  key={`${gridId}-${rIndex}-${item.value}-${item.currentMonth}-${item.prevMonth}`}
+                  role="presentation"
+                >
+                  <button
+                    onClick={() => selectDate(item, dayIndex)}
+                    ref={(e) => {
+                      if (e) btnRef.current[dayIndex] = e;
+                    }}
+                    className={cn(
+                      "p-1 rounded w-6 aria-selected:bg-neutral-800 aria-selected:text-white",
+                      {
+                        "text-neutral-400": !item.currentMonth,
+                        "bg-neutral-200":
+                          item.currentMonth &&
+                          item.value === today.getDate() &&
+                          currentViewerDate.getFullYear() ===
+                            today.getFullYear() &&
+                          currentViewerDate.getMonth() === today.getMonth(),
+                      }
+                    )}
+                    aria-selected={
+                      item.currentMonth &&
+                      item.value === selectedDate?.getDate() &&
+                      selectedDate?.getFullYear() ===
+                        currentViewerDate.getFullYear() &&
+                      selectedDate?.getMonth() === currentViewerDate.getMonth()
+                    }
+                    disabled={!item.label}
+                    tabIndex={currentTabbableButton === dayIndex ? 0 : -1}
+                  >
+                    {item.label}
+                  </button>
+                </td>
+              );
+            })}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

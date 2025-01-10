@@ -13,6 +13,7 @@ export type CalendarProps = {
   showAdjacentMonthDates?: boolean;
   value?: NepaliDate;
   onValueChange?: (date: NepaliDate | undefined) => void;
+  defaultViewerDate?: NepaliDate;
 };
 
 export function Calendar({
@@ -22,9 +23,14 @@ export function Calendar({
   showAdjacentMonthDates = false,
   onValueChange,
   value,
+  defaultViewerDate,
 }: CalendarProps) {
   return (
-    <CalendarProvider value={value} onValueChange={onValueChange}>
+    <CalendarProvider
+      value={value}
+      onValueChange={onValueChange}
+      defaultViewerDate={defaultViewerDate}
+    >
       <div tabIndex={-1}>
         <CalendarHeader
           locale={locale}
